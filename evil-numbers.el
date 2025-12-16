@@ -61,7 +61,7 @@
 
 
 ;; ---------------------------------------------------------------------------
-;; ;; Compatibility
+;; Compatibility
 
 (when (version< emacs-version "29.1")
   (defsubst pos-bol (&optional n)
@@ -412,10 +412,10 @@ NUM-GROUP is the match group used to evaluate the number.
 SIGN-GROUP is the match group used for the sign ('-' or '+').
 
 When PADDED is non-nil,
-the number keeps it's current width (with leading zeroes).
+the number keeps its current width (with leading zeroes).
 
 When RANGE-CHECK-FN is non-nil, it's called with the match beginning & end.
-A non nil result causes this function to return nil.
+A nil result causes this function to skip this match.
 
 When all characters are found in sequence, evaluate the number in BASE,
 replacing it by the result of NUMBER-XFORM-FN and return non-nil."
@@ -499,7 +499,7 @@ replacing it by the result of NUMBER-XFORM-FN and return non-nil."
 
 (defun evil-numbers--inc-at-pt-impl
     (beg end padded range-check-fn number-xform-fn)
-  "Increment the number at the current POINT by AMOUNT limited by BEG and END.
+  "Increment/decrement the number at the current POINT, limited by BEG and END.
 
 Keep padding when PADDED is non-nil.
 
@@ -626,10 +626,6 @@ Return non-nil on success, leaving the point at the end of the number."
 
   "Increment the number at point or after point before `end-of-line' by AMOUNT.
 When region is selected, increment all numbers in the region by AMOUNT.
-
-NO-REGION is internal flag that allows
-`evil-numbers/inc-at-point' to be called recursively when
-applying the regional features of `evil-numbers/inc-at-point'.
 
 INCREMENTAL causes the first number to be increased by 1*AMOUNT,
 the second by 2*AMOUNT and so on.
