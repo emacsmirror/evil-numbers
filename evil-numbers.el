@@ -348,7 +348,7 @@ Each item in MATCH-CHARS is a cons pair.
          ((eq ch-num '\?)
           (evil-numbers--skip-chars-impl ch-skip ch-sep-optional dir 1 limit))
          (t
-          (error "Unknown type %S (internal error)" ch-skip)))
+          (error "Unknown type %S (internal error)" ch-num)))
 
         ;; End of the match.
         (when do-match
