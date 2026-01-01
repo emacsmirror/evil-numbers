@@ -6,7 +6,7 @@
 
 ;; See: `evil-numbers-tests.sh' for launching this script.
 
-;; TODO: tests that handle bugs: #20, #26, #27.
+;; TODO: tests that handle bugs: #20, #27.
 ;; Bugs fixed in:
 ;; c37a4cf92a9cf8aa9f8bd752ea856a9d1bc6c84c
 
@@ -411,6 +411,44 @@
         ;; Show cursor location.
         "a|")
       (should (equal text-expected (buffer-string))))))
+
+;; See bug #26.
+(ert-deftest simple-cursor-at-end-of-number ()
+  "Check `evil-numbers-use-cursor-at-end-of-number' behavior."
+  (let ((text-initial "foo(1)"))
+    ;; Save the default value to restore later.
+    (let ((default-value evil-numbers-use-cursor-at-end-of-number))
+      (unwind-protect
+          (progn
+            ;; Test with option DISABLED (default VIM behavior).
+            ;; Cursor directly after a number should NOT increment it.
+            (setq evil-numbers-use-cursor-at-end-of-number nil)
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                ;; Move cursor to the ')' (directly after the number).
+                "f)"
+                ;; Try to increment.
+                (kbd "C-a")
+                ;; Show cursor location.
+                "a|")
+              ;; Number should NOT be incremented.
+              (should (equal "foo(1)|" (buffer-string))))
+
+            ;; Test with option ENABLED.
+            ;; Cursor directly after a number SHOULD increment it.
+            (setq evil-numbers-use-cursor-at-end-of-number t)
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                ;; Move cursor to the ')' (directly after the number).
+                "f)"
+                ;; Try to increment.
+                (kbd "C-a")
+                ;; Show cursor location.
+                "a|")
+              ;; Number SHOULD be incremented (cursor ends at number).
+              (should (equal "foo(2|)" (buffer-string)))))
+        ;; Restore the default value.
+        (setq evil-numbers-use-cursor-at-end-of-number default-value)))))
 
 (provide 'evil-numbers-tests)
 ;;; evil-numbers-tests.el ends here
