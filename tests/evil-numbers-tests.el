@@ -64,6 +64,10 @@
 
 ;; ---------------------------------------------------------------------------
 ;; Tests
+;; ---------------------------------------------------------------------------
+
+;; ---------------------------------------------------------------------------
+;; Simple Decimal Tests
 
 (ert-deftest simple ()
   "Check a single number increments."
@@ -86,6 +90,163 @@
         (kbd "C-x")
         "a|")
       (should (equal text-expected (buffer-string))))))
+
+;; ---------------------------------------------------------------------------
+;; Binary Number Tests
+
+(ert-deftest simple-binary ()
+  "Check that binary numbers increment correctly."
+  (let ((text-expected " 0b110| ")
+        (text-initial " 0b101 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-binary-uppercase-prefix ()
+  "Check that uppercase binary prefix works."
+  (let ((text-expected " 0B110| ")
+        (text-initial " 0B101 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-binary-decrement ()
+  "Check that binary numbers decrement correctly."
+  (let ((text-expected " 0b100| ")
+        (text-initial " 0b101 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-binary-carry ()
+  "Check that binary increment handles carry correctly."
+  (let ((text-expected " 0b1000| ")
+        (text-initial " 0b111 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-binary-negative ()
+  "Check that negative binary numbers work."
+  (let ((text-expected " -0b100| ")
+        (text-initial " -0b101 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-binary-to-negative ()
+  "Check that binary can decrement to negative."
+  (let ((text-expected " -0b1| ")
+        (text-initial " 0b0 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-binary-cursor-positions ()
+  "Check that binary is detected at all cursor positions."
+  (let ((text-initial " 0b101 "))
+    ;; Test incrementing at different offsets within the binary number.
+    (dotimes (i 6)
+      (with-evil-numbers-test text-initial
+        (dotimes (_ i)
+          (simulate-input
+            "l"))
+        (simulate-input
+          (kbd "C-a")
+          "a|")
+        (should (equal " 0b110| " (buffer-string)))))))
+
+;; ---------------------------------------------------------------------------
+;; Octal Number Tests
+
+(ert-deftest simple-octal ()
+  "Check that octal numbers increment correctly."
+  (let ((text-expected " 0o10| ")
+        (text-initial " 0o7 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-octal-uppercase-prefix ()
+  "Check that uppercase octal prefix works."
+  (let ((text-expected " 0O43| ")
+        (text-initial " 0O42 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-octal-decrement ()
+  "Check that octal numbers decrement correctly."
+  (let ((text-expected " 0o41| ")
+        (text-initial " 0o42 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-octal-carry ()
+  "Check that octal increment handles carry correctly (7 -> 10)."
+  (let ((text-expected " 0o100| ")
+        (text-initial " 0o77 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-octal-negative ()
+  "Check that negative octal numbers work."
+  (let ((text-expected " -0o41| ")
+        (text-initial " -0o42 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-octal-to-negative ()
+  "Check that octal can decrement to negative."
+  (let ((text-expected " -0o1| ")
+        (text-initial " 0o0 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-octal-cursor-positions ()
+  "Check that octal is detected at all cursor positions."
+  (let ((text-initial " 0o42 "))
+    ;; Test incrementing at different offsets within the octal number.
+    (dotimes (i 5)
+      (with-evil-numbers-test text-initial
+        (dotimes (_ i)
+          (simulate-input
+            "l"))
+        (simulate-input
+          (kbd "C-a")
+          "a|")
+        (should (equal " 0o43| " (buffer-string)))))))
+
+;; ---------------------------------------------------------------------------
+;; Hexadecimal Number Tests
 
 ;; See bug #18.
 (ert-deftest simple-hex ()
@@ -144,6 +305,140 @@
           "a|"
           (kbd "<escape>"))
         (should (equal text-expected (buffer-string)))))))
+
+;; See bug #24.
+(ert-deftest simple-hex-case-preserved ()
+  "Check that hexadecimal case is preserved when incrementing/decrementing."
+  ;; Lowercase hex should stay lowercase.
+  (let ((text-expected " 0xf1| ")
+        (text-initial " 0xf0 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+  ;; Uppercase hex should stay uppercase.
+  (let ((text-expected " 0xF1| ")
+        (text-initial " 0xF0 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+  ;; Numeric-only hex (no alpha) should become lowercase (default).
+  (let ((text-expected " 0xa| ")
+        (text-initial " 0x9 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+  ;; Test decrement preserves case too.
+  (let ((text-expected " 0xef| ")
+        (text-initial " 0xf0 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest simple-hex-case-forced-upcase ()
+  "Check that `evil-numbers-case' set to `upcase' forces uppercase hex."
+  (let ((default-value evil-numbers-case))
+    (unwind-protect
+        (progn
+          (setq evil-numbers-case 'upcase)
+          ;; Lowercase input should become uppercase.
+          (let ((text-expected " 0xAB| ")
+                (text-initial " 0xaa "))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                (kbd "C-a")
+                "a|")
+              (should (equal text-expected (buffer-string)))))
+          ;; Uppercase input stays uppercase.
+          (let ((text-expected " 0xAB| ")
+                (text-initial " 0xAA "))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                (kbd "C-a")
+                "a|")
+              (should (equal text-expected (buffer-string)))))
+          ;; Numeric-only hex becomes uppercase when alpha digits appear.
+          (let ((text-expected " 0xA| ")
+                (text-initial " 0x9 "))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                (kbd "C-a")
+                "a|")
+              (should (equal text-expected (buffer-string))))))
+      (setq evil-numbers-case default-value))))
+
+(ert-deftest simple-hex-case-forced-downcase ()
+  "Check that `evil-numbers-case' set to `downcase' forces lowercase hex."
+  (let ((default-value evil-numbers-case))
+    (unwind-protect
+        (progn
+          (setq evil-numbers-case 'downcase)
+          ;; Uppercase input should become lowercase.
+          (let ((text-expected " 0xab| ")
+                (text-initial " 0xAA "))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                (kbd "C-a")
+                "a|")
+              (should (equal text-expected (buffer-string)))))
+          ;; Lowercase input stays lowercase.
+          (let ((text-expected " 0xab| ")
+                (text-initial " 0xaa "))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                (kbd "C-a")
+                "a|")
+              (should (equal text-expected (buffer-string)))))
+          ;; Numeric-only hex becomes lowercase when alpha digits appear.
+          (let ((text-expected " 0xa| ")
+                (text-initial " 0x9 "))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                (kbd "C-a")
+                "a|")
+              (should (equal text-expected (buffer-string))))))
+      (setq evil-numbers-case default-value))))
+
+;; ---------------------------------------------------------------------------
+;; Separator Character Tests
+
+(ert-deftest simple-separator-chars ()
+  "Check separator characters are handled when incrementing."
+  (let ((text-expected "1_11_111|")
+        (text-initial "1_11_110"))
+    ;; Test at different offsets to ensure
+    ;; there are no bugs similar to #18 occurring.
+    (dotimes (i 8)
+      (with-evil-numbers-test text-initial
+        (setq-local evil-numbers-separator-chars "_")
+        (dotimes (_ i)
+          (simulate-input
+            "l"))
+        (simulate-input
+          (kbd "C-a")
+          "a|")
+        (should (equal text-expected (buffer-string)))))))
+
+(ert-deftest simple-separator-chars-disabled ()
+  "Check separator characters are ignored when disabled."
+  (let ((text-expected "2|_11_111")
+        (text-initial "1_11_111"))
+    (with-evil-numbers-test text-initial
+      (setq-local evil-numbers-separator-chars nil)
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+;; ---------------------------------------------------------------------------
+;; Edge Cases / No-Operation Tests
 
 (ert-deftest simple-nop-non-number ()
   "Do nothing, the value under the cursor is not a number."
@@ -210,33 +505,59 @@
         "a|")
       (should (equal text-expected (buffer-string))))))
 
-(ert-deftest simple-separator-chars ()
-  "Check separator characters are handled when incrementing."
-  (let ((text-expected "1_11_111|")
-        (text-initial "1_11_110"))
-    ;; Test at different offsets to ensure
-    ;; there are no bugs similar to #18 occurring.
-    (dotimes (i 8)
-      (with-evil-numbers-test text-initial
-        (setq-local evil-numbers-separator-chars "_")
-        (dotimes (_ i)
-          (simulate-input
-            "l"))
-        (simulate-input
-          (kbd "C-a")
-          "a|")
-        (should (equal text-expected (buffer-string)))))))
-
-(ert-deftest simple-separator-chars-disabled ()
-  "Check separator characters are ignored when disabled."
-  (let ((text-expected "2|_11_111")
-        (text-initial "1_11_111"))
+;; See bug #20.
+(ert-deftest simple-nop-blank-line-cursor-stays ()
+  "Do nothing on blank line and don't move cursor to next line.
+When incrementing on a blank line with another line after it,
+the cursor should remain on the blank line, not move to the next line."
+  (let ((text-expected "|\n0")
+        (text-initial "\n0"))
     (with-evil-numbers-test text-initial
-      (setq-local evil-numbers-separator-chars nil)
       (simulate-input
+        ;; Cursor starts on the blank first line.
+        ;; Try to increment - should fail and cursor should NOT move.
         (kbd "C-a")
+        ;; Show cursor location.
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+  ;; Also test decrement.
+  (let ((text-expected "|\n0")
+        (text-initial "\n0"))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
         "a|")
       (should (equal text-expected (buffer-string))))))
+
+;; See bug #27.
+(ert-deftest simple-nop-cursor-at-end-of-line-trailing-space ()
+  "Do nothing when cursor is at trailing space where forward-char can't move.
+When the cursor is at the last blank space on a line (end of line),
+the number directly before it should NOT be manipulated."
+  ;; Test with trailing space (the exact bug #27 scenario).
+  (let ((text-expected "123 |")
+        (text-initial "123 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        ;; Move to end of line (the trailing space).
+        (kbd "<end>")
+        ;; Try to increment - should do nothing.
+        (kbd "C-a")
+        ;; Show cursor location.
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+  ;; Also test decrement.
+  (let ((text-expected "123 |")
+        (text-initial "123 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "<end>")
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+;; ---------------------------------------------------------------------------
+;; Visual Selection Tests
 
 (ert-deftest selected-block-column-first ()
   "Block selection test."
@@ -332,42 +653,6 @@
         "a|")
       (should (equal text-expected (buffer-string))))))
 
-;; See bug #24.
-(ert-deftest simple-hex-case-preserved ()
-  "Check that hexadecimal case is preserved when incrementing/decrementing."
-  ;; Lowercase hex should stay lowercase.
-  (let ((text-expected " 0xf1| ")
-        (text-initial " 0xf0 "))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        (kbd "C-a")
-        "a|")
-      (should (equal text-expected (buffer-string)))))
-  ;; Uppercase hex should stay uppercase.
-  (let ((text-expected " 0xF1| ")
-        (text-initial " 0xF0 "))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        (kbd "C-a")
-        "a|")
-      (should (equal text-expected (buffer-string)))))
-  ;; Numeric-only hex (no alpha) should become lowercase (default).
-  (let ((text-expected " 0xa| ")
-        (text-initial " 0x9 "))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        (kbd "C-a")
-        "a|")
-      (should (equal text-expected (buffer-string)))))
-  ;; Test decrement preserves case too.
-  (let ((text-expected " 0xef| ")
-        (text-initial " 0xf0 "))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        (kbd "C-x")
-        "a|")
-      (should (equal text-expected (buffer-string))))))
-
 ;; See bug #21.
 (ert-deftest selected-line-cursor-at-end ()
   "Line selection increments numbers before the cursor."
@@ -405,95 +690,6 @@
         ;; Increment.
         (kbd "C-M-a")
         ;; Show cursor location.
-        "a|")
-      (should (equal text-expected (buffer-string))))))
-
-;; See bug #26.
-(ert-deftest simple-cursor-at-end-of-number ()
-  "Check `evil-numbers-use-cursor-at-end-of-number' behavior."
-  (let ((text-initial "foo(1)"))
-    ;; Save the default value to restore later.
-    (let ((default-value evil-numbers-use-cursor-at-end-of-number))
-      (unwind-protect
-          (progn
-            ;; Test with option DISABLED (default VIM behavior).
-            ;; Cursor directly after a number should NOT increment it.
-            (setq evil-numbers-use-cursor-at-end-of-number nil)
-            (with-evil-numbers-test text-initial
-              (simulate-input
-                ;; Move cursor to the ')' (directly after the number).
-                "f)"
-                ;; Try to increment.
-                (kbd "C-a")
-                ;; Show cursor location.
-                "a|")
-              ;; Number should NOT be incremented.
-              (should (equal "foo(1)|" (buffer-string))))
-
-            ;; Test with option ENABLED.
-            ;; Cursor directly after a number SHOULD increment it.
-            (setq evil-numbers-use-cursor-at-end-of-number t)
-            (with-evil-numbers-test text-initial
-              (simulate-input
-                ;; Move cursor to the ')' (directly after the number).
-                "f)"
-                ;; Try to increment.
-                (kbd "C-a")
-                ;; Show cursor location.
-                "a|")
-              ;; Number SHOULD be incremented (cursor ends at number).
-              (should (equal "foo(2|)" (buffer-string)))))
-        ;; Restore the default value.
-        (setq evil-numbers-use-cursor-at-end-of-number default-value)))))
-
-;; See bug #20.
-(ert-deftest simple-nop-blank-line-cursor-stays ()
-  "Do nothing on blank line and don't move cursor to next line.
-When incrementing on a blank line with another line after it,
-the cursor should remain on the blank line, not move to the next line."
-  (let ((text-expected "|\n0")
-        (text-initial "\n0"))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        ;; Cursor starts on the blank first line.
-        ;; Try to increment - should fail and cursor should NOT move.
-        (kbd "C-a")
-        ;; Show cursor location.
-        "a|")
-      (should (equal text-expected (buffer-string)))))
-  ;; Also test decrement.
-  (let ((text-expected "|\n0")
-        (text-initial "\n0"))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        (kbd "C-x")
-        "a|")
-      (should (equal text-expected (buffer-string))))))
-
-;; See bug #27.
-(ert-deftest simple-nop-cursor-at-end-of-line-trailing-space ()
-  "Do nothing when cursor is at trailing space where forward-char can't move.
-When the cursor is at the last blank space on a line (end of line),
-the number directly before it should NOT be manipulated."
-  ;; Test with trailing space (the exact bug #27 scenario).
-  (let ((text-expected "123 |")
-        (text-initial "123 "))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        ;; Move to end of line (the trailing space).
-        (kbd "<end>")
-        ;; Try to increment - should do nothing.
-        (kbd "C-a")
-        ;; Show cursor location.
-        "a|")
-      (should (equal text-expected (buffer-string)))))
-  ;; Also test decrement.
-  (let ((text-expected "123 |")
-        (text-initial "123 "))
-    (with-evil-numbers-test text-initial
-      (simulate-input
-        (kbd "<end>")
-        (kbd "C-x")
         "a|")
       (should (equal text-expected (buffer-string))))))
 
@@ -552,6 +748,47 @@ should result in 08 (matching original width), not 8."
               (should (equal text-expected (buffer-string))))))
       ;; Restore the default value.
       (setq evil-numbers-pad-default default-value))))
+
+;; ---------------------------------------------------------------------------
+;; Option Behavior Tests
+
+;; See bug #26.
+(ert-deftest simple-cursor-at-end-of-number ()
+  "Check `evil-numbers-use-cursor-at-end-of-number' behavior."
+  (let ((text-initial "foo(1)"))
+    ;; Save the default value to restore later.
+    (let ((default-value evil-numbers-use-cursor-at-end-of-number))
+      (unwind-protect
+          (progn
+            ;; Test with option DISABLED (default VIM behavior).
+            ;; Cursor directly after a number should NOT increment it.
+            (setq evil-numbers-use-cursor-at-end-of-number nil)
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                ;; Move cursor to the ')' (directly after the number).
+                "f)"
+                ;; Try to increment.
+                (kbd "C-a")
+                ;; Show cursor location.
+                "a|")
+              ;; Number should NOT be incremented.
+              (should (equal "foo(1)|" (buffer-string))))
+
+            ;; Test with option ENABLED.
+            ;; Cursor directly after a number SHOULD increment it.
+            (setq evil-numbers-use-cursor-at-end-of-number t)
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                ;; Move cursor to the ')' (directly after the number).
+                "f)"
+                ;; Try to increment.
+                (kbd "C-a")
+                ;; Show cursor location.
+                "a|")
+              ;; Number SHOULD be incremented (cursor ends at number).
+              (should (equal "foo(2|)" (buffer-string)))))
+        ;; Restore the default value.
+        (setq evil-numbers-use-cursor-at-end-of-number default-value)))))
 
 (provide 'evil-numbers-tests)
 ;;; evil-numbers-tests.el ends here
