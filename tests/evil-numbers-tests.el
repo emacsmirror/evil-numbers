@@ -6,7 +6,7 @@
 
 ;; See: `evil-numbers-tests.sh' for launching this script.
 
-;; TODO: tests that handle bugs: #20, #21, #24, #26, #27.
+;; TODO: tests that handle bugs: #20, #24, #26, #27.
 ;; Bugs fixed in:
 ;; c37a4cf92a9cf8aa9f8bd752ea856a9d1bc6c84c
 
@@ -332,6 +332,23 @@
         "jj"
         ;; Increment.
         (kbd "C-M-a")
+        ;; Show cursor location.
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
+;; See bug #21.
+(ert-deftest selected-line-cursor-at-end ()
+  "Line selection increments numbers before the cursor."
+  (let ((text-expected "2 2 2|\n")
+        (text-initial "1 1 1\n"))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        ;; Move to end of line (cursor after last number).
+        (kbd "<end>")
+        ;; Line select.
+        (kbd "V")
+        ;; Increment.
+        (kbd "C-a")
         ;; Show cursor location.
         "a|")
       (should (equal text-expected (buffer-string))))))
