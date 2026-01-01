@@ -6,7 +6,7 @@
 
 ;; See: `evil-numbers-tests.sh' for launching this script.
 
-;; TODO: tests that handle bugs: #20, #27.
+;; TODO: tests that handle bugs: #20.
 ;; Bugs fixed in:
 ;; c37a4cf92a9cf8aa9f8bd752ea856a9d1bc6c84c
 
@@ -449,6 +449,33 @@
               (should (equal "foo(2|)" (buffer-string)))))
         ;; Restore the default value.
         (setq evil-numbers-use-cursor-at-end-of-number default-value)))))
+
+;; See bug #27.
+(ert-deftest simple-nop-cursor-at-end-of-line-trailing-space ()
+  "Do nothing when cursor is at trailing space where forward-char can't move.
+When the cursor is at the last blank space on a line (end of line),
+the number directly before it should NOT be manipulated."
+  ;; Test with trailing space (the exact bug #27 scenario).
+  (let ((text-expected "123 |")
+        (text-initial "123 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        ;; Move to end of line (the trailing space).
+        (kbd "<end>")
+        ;; Try to increment - should do nothing.
+        (kbd "C-a")
+        ;; Show cursor location.
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+  ;; Also test decrement.
+  (let ((text-expected "123 |")
+        (text-initial "123 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "<end>")
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
 
 (provide 'evil-numbers-tests)
 ;;; evil-numbers-tests.el ends here
