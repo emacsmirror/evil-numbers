@@ -20,13 +20,13 @@
 ;;; Code:
 
 ;; ---------------------------------------------------------------------------
-;; Global State
+;; Global State (Set Up Key Bindings)
 
-;; VIM keys.
+;; VIM-style increment/decrement key bindings.
 (global-set-key (kbd "C-a") 'evil-numbers/inc-at-pt)
 (global-set-key (kbd "C-x") 'evil-numbers/dec-at-pt)
 
-;; Not VIM keys.
+;; Incremental variants (not standard VIM).
 (global-set-key (kbd "C-M-a") 'evil-numbers/inc-at-pt-incremental)
 (global-set-key (kbd "C-M-x") 'evil-numbers/dec-at-pt-incremental)
 
@@ -42,7 +42,7 @@
        (execute-kbd-macro keys))))
 
 (defun buffer-reset-text (initial-buffer-text)
-  "Use INITIAL-BUFFER-TEXT to initialize the buffer with text."
+  "Initialize buffer with INITIAL-BUFFER-TEXT."
   (buffer-disable-undo)
   (simulate-input
     (kbd "i"))
@@ -54,11 +54,10 @@
   (buffer-enable-undo))
 
 (defmacro with-evil-numbers-test (initial-buffer-text &rest body)
-  "Run BODY adding any message call to the MESSAGE-LIST list.
-Setting the buffers text to INITIAL-BUFFER-TEXT."
+  "Run BODY with messages inhibited, setting buffer text to INITIAL-BUFFER-TEXT."
   (declare (indent 1))
   ;; Messages make test output noisy (mainly evil mode switching messages).
-  ;; Disable when debugging tests.
+  ;; Set `inhibit-message' to nil to see messages when debugging.
   `(let ((inhibit-message t))
      (evil-mode 1)
      (buffer-reset-text ,initial-buffer-text)
@@ -75,18 +74,18 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
   (let ((text-expected "2|")
         (text-initial "1"))
     (with-evil-numbers-test text-initial
-      ;; Select the line & increment.
+      ;; Increment the number.
       (simulate-input
         (kbd "C-a")
         "a|")
       (should (equal text-expected (buffer-string))))))
 
 (ert-deftest simple-negative ()
-  "Check a single number increments."
+  "Check a single number decrements."
   (let ((text-expected "-1|")
         (text-initial "0"))
     (with-evil-numbers-test text-initial
-      ;; Select the line & increment.
+      ;; Decrement the number.
       (simulate-input
         (kbd "C-x")
         "a|")
@@ -94,7 +93,7 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
 
 ;; See bug #18.
 (ert-deftest simple-hex ()
-  "Check hexadecimal is detected at all parts."
+  "Check that hexadecimal is detected at all positions."
   (let ((text-initial " 0xFFF "))
     ;; Test incrementing at different offsets,
     ;; this ensures scanning the hexadecimal is handled properly.
@@ -117,7 +116,7 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
 
 ;; See bug #17.
 (ert-deftest simple-hex-positive-to-negative ()
-  "Change negative hex to negative."
+  "Change positive hex to negative."
   (let ((text-expected " -0x1| ")
         (text-initial " 0x1 "))
     (dotimes (i 4)
@@ -216,7 +215,7 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
       (should (equal text-expected (buffer-string))))))
 
 (ert-deftest simple-separator-chars ()
-  "Check a single number increments."
+  "Check separator characters are handled when incrementing."
   (let ((text-expected "1_11_111|")
         (text-initial "1_11_110"))
     ;; Test at different offsets to ensure
@@ -233,7 +232,7 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
         (should (equal text-expected (buffer-string)))))))
 
 (ert-deftest simple-separator-chars-disabled ()
-  "Check a single number increments."
+  "Check separator characters are ignored when disabled."
   (let ((text-expected "2|_11_111")
         (text-initial "1_11_111"))
     (with-evil-numbers-test text-initial
@@ -257,7 +256,7 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
                  "0 0 0\n")))
     (with-evil-numbers-test text-initial
       (simulate-input
-        ;; Block select the column
+        ;; Block select the column.
         (kbd "C-v")
         "jj"
         ;; Increment.
@@ -281,7 +280,7 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
     (with-evil-numbers-test text-initial
       (simulate-input
         (kbd "w")
-        ;; Block select the column
+        ;; Block select the column.
         (kbd "C-v")
         "jj"
         ;; Increment.
@@ -328,12 +327,13 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
                  "0 0 0\n")))
     (with-evil-numbers-test text-initial
       (simulate-input
-        ;; Block select the column
+        ;; Block select the column.
         (kbd "C-v")
         "jj"
         ;; Increment.
         (kbd "C-M-a")
-        "a|") ;; Show cursor location.
+        ;; Show cursor location.
+        "a|")
       (should (equal text-expected (buffer-string))))))
 
 (ert-deftest selected-lines-incremental ()
@@ -350,7 +350,7 @@ Setting the buffers text to INITIAL-BUFFER-TEXT."
                  "0 0 0\n")))
     (with-evil-numbers-test text-initial
       (simulate-input
-        ;; Block select the column
+        ;; Line select the rows.
         (kbd "V")
         "jj"
         ;; Increment.

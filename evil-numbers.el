@@ -18,10 +18,10 @@
 
 ;;; Commentary:
 
-;; Increment / Decrement binary, octal, decimal and hex literals.
+;; Increment/Decrement binary, octal, decimal and hex literals.
 ;;
-;; Works like C-a/C-x in VIM, i.e. searches for number up to EOL and
-;; then increments or decrements and keep zero padding up.
+;; Works like C-a/C-x in VIM, i.e. searches for a number up to EOL and
+;; then increments or decrements, maintaining zero padding.
 ;;
 ;; Known Bugs:
 ;; See http://github.com/juliapath/evil-numbers/issues
@@ -65,10 +65,12 @@
 
 (when (version< emacs-version "29.1")
   (defsubst pos-bol (&optional n)
-    "Return the position at the line beginning."
+    "Return the position at the line beginning.
+N specifies which line (default 1, the current line)."
     (line-beginning-position n))
   (defsubst pos-eol (&optional n)
-    "Return the position at the line end."
+    "Return the position at the line end.
+N specifies which line (default 1, the current line)."
     (line-end-position n)))
 
 
@@ -87,12 +89,12 @@
   :type 'boolean)
 
 (defcustom evil-numbers-separator-chars nil
-  "Support separator characters in numeric literals for visual grouping.
+  "Separator characters allowed in numeric literals for visual grouping.
 
 This value is a string containing separator characters,
 typically \"_\" or \",\" which are allowed in numeric literals in some systems.
 
-Otherwise nil will disable this functionality."
+Set to nil to disable this functionality."
   :type '(choice (const nil) string))
 
 (defcustom evil-numbers-case nil
@@ -112,8 +114,10 @@ This doesn't match VIM's behavior."
 ;; ---------------------------------------------------------------------------
 ;; Internal Variables
 
-(defconst evil-numbers--chars-superscript "⁰¹²³⁴⁵⁶⁷⁸⁹")
-(defconst evil-numbers--chars-subscript "₀₁₂₃₄₅₆₇₈₉")
+(defconst evil-numbers--chars-superscript "⁰¹²³⁴⁵⁶⁷⁸⁹"
+  "String containing superscript digit characters 0-9.")
+(defconst evil-numbers--chars-subscript "₀₁₂₃₄₅₆₇₈₉"
+  "String containing subscript digit characters 0-9.")
 
 (defconst evil-numbers--superscript-alist
   (cons
@@ -125,7 +129,8 @@ This doesn't match VIM's behavior."
        (cons
         (string-to-char (number-to-string i))
         (aref evil-numbers--chars-superscript i)))
-     (number-sequence 0 9)))))
+     (number-sequence 0 9))))
+  "Alist mapping regular characters to superscript equivalents.")
 
 (defconst evil-numbers--subscript-alist
   (cons
@@ -137,13 +142,14 @@ This doesn't match VIM's behavior."
        (cons
         (string-to-char (number-to-string i))
         (aref evil-numbers--chars-subscript i)))
-     (number-sequence 0 9)))))
+     (number-sequence 0 9))))
+  "Alist mapping regular characters to subscript equivalents.")
 
 
 ;; ---------------------------------------------------------------------------
 ;; Internal String Separator Utilities
 ;;
-;; To remove, and restore separators.
+;; To remove and restore separators.
 
 (defun evil-numbers--strip-chars (str sep-chars)
   "Remove SEP-CHARS from STR."
@@ -153,9 +159,9 @@ This doesn't match VIM's behavior."
   str)
 
 (defun evil-numbers--strip-chars-apply (str-src str-dst sep-chars)
-  "Add SEP-CHARS into STR-DST from STR-SRC."
+  "Restore SEP-CHARS positions from STR-SRC into STR-DST."
   (let ((sep-chars-list (append sep-chars nil))
-        ;; Strings to list.
+        ;; Convert strings to lists.
         (str-src-rev (nreverse (append str-src nil)))
         (str-dst-rev (nreverse (append str-dst nil)))
         (result (list)))
@@ -174,12 +180,11 @@ This doesn't match VIM's behavior."
 ;; Not directly related to incrementing numbers.
 
 (defun evil-numbers--case-category (str default)
-  "Categorize the case of STR or return DEFAULT when there is no case.
-
-- default: No case.
--       1: Upper case.
--      -1: Lower case.
--     nil: Mixed case."
+  "Categorize the case of STR.
+Return DEFAULT if STR has no case (e.g., digits only), otherwise:
+-   1: Upper case.
+-  -1: Lower case.
+- nil: Mixed case."
   (let ((str-dn (downcase str))
         (str-up (upcase str)))
     (cond
@@ -199,7 +204,7 @@ This doesn't match VIM's behavior."
 (defun evil-numbers--format-binary (number &optional width fillchar)
   "Format NUMBER as binary.
 Fill up to WIDTH with FILLCHAR (defaults to ?0) if binary
-representation of NUMBER is smaller."
+representation of NUMBER is smaller than WIDTH."
   (let ((nums (list))
         (fillchar (or fillchar ?0)))
     (while (> number 0)
@@ -215,7 +220,7 @@ representation of NUMBER is smaller."
              nums))))
 
 (defun evil-numbers--format (num width base)
-  "Format NUM with at least WIDTH space in BASE."
+  "Format NUM with at least WIDTH digits in BASE."
   (cond
    ((= base 2)
     (evil-numbers--format-binary num width))
@@ -233,7 +238,7 @@ representation of NUMBER is smaller."
 
 CH-SKIP: Characters to skip.
 CH-SEP-OPTIONAL: Separator characters (single instances are stepped over).
-DIR: Direction to step in (1 -1).
+DIR: Direction to step in (1 or -1).
 CH-NUM: Number of characters to step.
 LIMIT: Point which will not be stepped past."
   (let* ((is-forward (< 0 dir))
@@ -269,14 +274,14 @@ LIMIT: Point which will not be stepped past."
                             (evil-numbers--skip-chars-impl
                              ch-sep-optional nil dir 1 limit))
                            (progn
-                             ;; Note counted towards 'skipped'
+                             ;; Not counted towards 'skipped'
                              ;; as this character is to be ignored entirely.
                              (setq skipped-next
                                    (evil-numbers--skip-chars-impl
                                     ch-skip nil dir ch-num limit))
                              (unless (zerop skipped-next)
                                (setq point-next (point))
-                               ;; Found (apply `point-new').
+                               ;; Found (apply `point-next').
                                t)))))
           ;; Step over the separator and contents found afterwards.
           (when point-next
@@ -294,14 +299,15 @@ LIMIT: Point which will not be stepped past."
 When DO-CHECK is non-nil, any failure to match returns nil.
 When DO-MATCH is non-nil, match data is set.
 
-Each item in MATCH-CHARS is a cons pair.
-- The first item is the argument to pass to
+Each item in MATCH-CHARS is a list of (CH-SKIP CH-NUM CH-SEP-OPTIONAL).
+- CH-SKIP is the argument to pass to
   `skip-chars-forward' or `skip-chars-backward'.
-- The second item specifies how many characters to match,
+- CH-NUM specifies how many characters to match.
   Valid values:
   - Symbol `+' one or more.
   - Symbol `*' zero or more.
-  - `integerp' this number exactly."
+  - An integer: match exactly this many.
+- CH-SEP-OPTIONAL specifies optional separator characters."
   (catch 'result
     (let* ((is-forward (< 0 dir))
            (point-init (point))
@@ -354,7 +360,7 @@ Each item in MATCH-CHARS is a cons pair.
         (when do-match
           (push (point) match-list)))
 
-      ;; Match 0 for the full range (expected at the beginning).
+      ;; Add match group 0 (full match) at the beginning of the list.
       (when do-match
         (setq match-list
               (cond ; `point-init' `point' `match-list'.
@@ -367,11 +373,11 @@ Each item in MATCH-CHARS is a cons pair.
     t))
 
 (defun evil-numbers--swap-alist (alist)
-  "Swap association list ALIST."
+  "Swap keys and values in association list ALIST."
   (mapcar (lambda (x) (cons (cdr x) (car x))) alist))
 
 (defun evil-numbers--translate-with-alist (alist string)
-  "Translate every symbol in STRING using ALIST."
+  "Translate every character in STRING using ALIST."
   (funcall (cond
             ((stringp string)
              #'concat)
@@ -380,18 +386,18 @@ Each item in MATCH-CHARS is a cons pair.
            (mapcar (lambda (c) (cdr (assoc c alist))) string)))
 
 (defun evil-numbers--encode-super (x)
-  "Convert X string into super-script."
+  "Convert string X to superscript."
   (evil-numbers--translate-with-alist evil-numbers--superscript-alist x))
 (defun evil-numbers--decode-super (x)
-  "Convert X string from super-script into regular characters."
+  "Convert string X from superscript to regular characters."
   (evil-numbers--translate-with-alist
    (evil-numbers--swap-alist evil-numbers--superscript-alist) x))
 
 (defun evil-numbers--encode-sub (x)
-  "Convert X string into sub-script."
+  "Convert string X to subscript."
   (evil-numbers--translate-with-alist evil-numbers--subscript-alist x))
 (defun evil-numbers--decode-sub (x)
-  "Convert X string from sub-script into regular characters."
+  "Convert string X from subscript to regular characters."
   (evil-numbers--translate-with-alist
    (evil-numbers--swap-alist evil-numbers--subscript-alist) x))
 
@@ -405,7 +411,7 @@ Each item in MATCH-CHARS is a cons pair.
      sign-group num-group base beg end padded do-case
      ;; Callbacks.
      range-check-fn number-xform-fn decode-fn encode-fn)
-  "Perform the increment/decrement on the current line.
+  "Perform the increment/decrement within BEG and END.
 
 For MATCH-CHARS docs see `evil-numbers--match-from-skip-chars'.
 NUM-GROUP is the match group used to evaluate the number.
@@ -416,6 +422,11 @@ the number keeps its current width (with leading zeroes).
 
 When RANGE-CHECK-FN is non-nil, it's called with the match beginning & end.
 A nil result causes this function to skip this match.
+
+When DO-CASE is non-nil, apply case handling for hexadecimal numbers.
+
+DECODE-FN converts the matched string to regular characters for parsing.
+ENCODE-FN converts the result back for replacement.
 
 When all characters are found in sequence, evaluate the number in BASE,
 replacing it by the result of NUMBER-XFORM-FN and return non-nil."
@@ -477,9 +488,8 @@ replacing it by the result of NUMBER-XFORM-FN and return non-nil."
                   (evil-numbers--strip-chars-apply
                    str-prev str-next sep-char))))
 
-        ;; Replace number then sign, workaround emacs bug #74666.
-        ;; The order replace runs isn't really important anyway,
-        ;; the order may be restored once the bug is resolved in emacs.
+        ;; Replace number then sign to work around Emacs bug #74666.
+        ;; Order doesn't affect correctness, but this order avoids the bug.
 
         ;; Replace the number.
         (replace-match (funcall encode-fn str-next) t t nil num-group)
@@ -499,7 +509,7 @@ replacing it by the result of NUMBER-XFORM-FN and return non-nil."
 
 (defun evil-numbers--inc-at-pt-impl
     (beg end padded range-check-fn number-xform-fn)
-  "Increment/decrement the number at the current POINT, limited by BEG and END.
+  "Increment/decrement the number at point, limited by BEG and END.
 
 Keep padding when PADDED is non-nil.
 
@@ -509,7 +519,7 @@ RANGE-CHECK-FN and NUMBER-XFORM-FN.
 Return non-nil on success, leaving the point at the end of the number."
   (or
    ;; Find binary literals:
-   ;; 0[bB][01]+, e.g. 0b101 or 0B0
+   ;; 0[bB][01]+, e.g. 0b101 or 0B0.
    (evil-numbers--inc-at-pt-impl-with-match-chars
     `(("+-" \?) ("0" 1) ("bB" 1) ("01" + ,evil-numbers-separator-chars))
     ;; Sign, number groups & base.
@@ -520,11 +530,11 @@ Return non-nil on success, leaving the point at the end of the number."
     #'identity #'identity)
 
    ;; Find octal literals:
-   ;; 0[oO][0-7]+, e.g. 0o42 or 0O5
+   ;; 0[oO][0-7]+, e.g. 0o42 or 0O5.
    (evil-numbers--inc-at-pt-impl-with-match-chars
 
     `(("+-" \?) ("0" 1) ("oO" 1) ("0-7" + ,evil-numbers-separator-chars))
-    ;; Sign & number groups.
+    ;; Sign, number groups & base.
     1 4 8
     ;; Other arguments.
     beg end padded nil range-check-fn number-xform-fn
@@ -532,7 +542,7 @@ Return non-nil on success, leaving the point at the end of the number."
     #'identity #'identity)
 
    ;; Find hex literals:
-   ;; 0[xX][0-9a-fA-F]+, e.g. 0xBEEF or 0Xcafe
+   ;; 0[xX][0-9a-fA-F]+, e.g. 0xBEEF or 0Xcafe.
    (evil-numbers--inc-at-pt-impl-with-match-chars
     `(("+-" \?) ("0" 1) ("xX" 1) ("[:xdigit:]" + ,evil-numbers-separator-chars))
     ;; Sign, number groups & base.
@@ -553,7 +563,7 @@ Return non-nil on success, leaving the point at the end of the number."
     ;; Decode & encode callbacks.
     #'identity #'identity)
 
-   ;; Find decimal literals (super-script).
+   ;; Find decimal literals (superscript).
    (evil-numbers--inc-at-pt-impl-with-match-chars
     `(("⁺⁻" \?) (,evil-numbers--chars-superscript + nil))
     ;; Sign, number groups & base.
@@ -563,7 +573,7 @@ Return non-nil on success, leaving the point at the end of the number."
     ;; Decode & encode callbacks.
     #'evil-numbers--decode-super #'evil-numbers--encode-super)
 
-   ;; Find decimal literals (sub-script).
+   ;; Find decimal literals (subscript).
    (evil-numbers--inc-at-pt-impl-with-match-chars
     `(("₊₋" \?) (,evil-numbers--chars-subscript + nil))
     ;; Sign, number groups & base.
@@ -575,7 +585,7 @@ Return non-nil on success, leaving the point at the end of the number."
 
 (defun evil-numbers--inc-at-pt-impl-with-search
     (amount beg end padded range-check-fn)
-  "Increment the number at the current POINT by AMOUNT limited by BEG and END.
+  "Change the number at point by AMOUNT, limited by BEG and END.
 
 Keep padding when PADDED is non-nil.
 
@@ -586,8 +596,8 @@ Return non-nil on success, leaving the point at the end of the number."
   (let ((found nil))
     (save-match-data
       ;; Search for any text that might be part of a number,
-      ;; if `evil-numbers--search-and-replace' cannot parse it - that's fine,
-      ;; keep searching until `end'
+      ;; if `evil-numbers--inc-at-pt-impl' cannot parse it - that's fine,
+      ;; keep searching until `end'.
       ;; This avoids doubling up on number parsing logic.
       ;;
       ;; Note that the while body is empty.
@@ -606,7 +616,7 @@ Return non-nil on success, leaving the point at the end of the number."
                       (lambda (n) (+ n amount)))
                  (setq found t)))
 
-              ;; Search failed, exit the loop.
+              ;; No more matches found, exit the loop.
               (re-search-forward (concat
                                   "["
                                   "[:xdigit:]"
@@ -630,7 +640,7 @@ When region is selected, increment all numbers in the region by AMOUNT.
 INCREMENTAL causes the first number to be increased by 1*AMOUNT,
 the second by 2*AMOUNT and so on.
 
-PADDED is whether numbers should be padded (e.g. 10 -> 09).
+PADDED is whether numbers should be padded (e.g. decrementing 10 -> 09).
 -    nil: is default behavior set by `evil-numbers-pad-default',
 -      t: is the opposite of `evil-numbers-pad-default',
 - `'(t)': enables padding and `'(nil)' disables padding.
@@ -656,7 +666,7 @@ negative number to a positive will result in a number with a + sign."
                    evil-numbers-pad-default))))
   (cond
    ;; Handle selection (block or line).
-   ;; Run this function in a loop (falling through to the `t' case).
+   ;; Increment each number in the selection.
    ((and beg end type)
     (let ((count 1))
       (save-excursion
@@ -681,7 +691,7 @@ negative number to a positive will result in a number with a + sign."
              (when (evil-numbers--inc-at-pt-impl-with-search
                     amount (pos-bol) (pos-eol) padded
                     ;; Optional range checking function, only needed when
-                    ;; `evil-numbers-use-cursor-at-end-of-number' is not nil.
+                    ;; `evil-numbers-use-cursor-at-end-of-number' is nil.
                     (cond
                      (evil-numbers-use-cursor-at-end-of-number
                       nil)
@@ -712,7 +722,7 @@ negative number to a positive will result in a number with a + sign."
   (amount beg end type &optional incremental padded)
   "Decrement the number at point or after point before `end-of-line' by AMOUNT.
 
-If a region is active, decrement all the numbers at a point by AMOUNT."
+If a region is active, decrement all the numbers in the region by AMOUNT."
   :motion nil
 
   (interactive "*<c><R>")
@@ -721,11 +731,14 @@ If a region is active, decrement all the numbers at a point by AMOUNT."
 ;;;###autoload (autoload 'evil-numbers/inc-at-pt-incremental "evil-numbers" nil t)
 (evil-define-operator evil-numbers/inc-at-pt-incremental
   (amount beg end type padded)
-  "Increment the number at point or after point before `end-of-line' by AMOUNT.
+  "Increment the number by AMOUNT.
 
-When a region is active, increment all the numbers at a point by AMOUNT*n, where
+
+When there is no active region, use the number at point
+or between the point and the `end-of-line'.
+When a region is active, increment all the numbers in the region by AMOUNT*n, where
 n is the index of the number among the numbers in the region, starting at 1.
-That is increment the first number by AMOUNT, the second by 2*AMOUNT,
+That is, increment the first number by AMOUNT, the second by 2*AMOUNT,
 and so on."
   :motion nil
 
