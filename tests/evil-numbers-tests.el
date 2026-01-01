@@ -6,7 +6,6 @@
 
 ;; See: `evil-numbers-tests.sh' for launching this script.
 
-;; TODO: tests that handle bugs: #20.
 ;; Bugs fixed in:
 ;; c37a4cf92a9cf8aa9f8bd752ea856a9d1bc6c84c
 
@@ -449,6 +448,30 @@
               (should (equal "foo(2|)" (buffer-string)))))
         ;; Restore the default value.
         (setq evil-numbers-use-cursor-at-end-of-number default-value)))))
+
+;; See bug #20.
+(ert-deftest simple-nop-blank-line-cursor-stays ()
+  "Do nothing on blank line and don't move cursor to next line.
+When incrementing on a blank line with another line after it,
+the cursor should remain on the blank line, not move to the next line."
+  (let ((text-expected "|\n0")
+        (text-initial "\n0"))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        ;; Cursor starts on the blank first line.
+        ;; Try to increment - should fail and cursor should NOT move.
+        (kbd "C-a")
+        ;; Show cursor location.
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+  ;; Also test decrement.
+  (let ((text-expected "|\n0")
+        (text-initial "\n0"))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
 
 ;; See bug #27.
 (ert-deftest simple-nop-cursor-at-end-of-line-trailing-space ()
