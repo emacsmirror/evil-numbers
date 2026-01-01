@@ -119,30 +119,28 @@ This doesn't match VIM's behavior."
 (defconst evil-numbers--chars-subscript "₀₁₂₃₄₅₆₇₈₉"
   "String containing subscript digit characters 0-9.")
 
-(defconst evil-numbers--superscript-alist
+(defun evil-numbers--build-script-alist (minus-char plus-char digit-chars)
+  "Build an alist mapping ASCII characters to script equivalents.
+MINUS-CHAR is the script minus sign.
+PLUS-CHAR is the script plus sign.
+DIGIT-CHARS is a 10-character string of script digits 0-9."
   (cons
-   (cons ?- ?⁻)
+   (cons ?- minus-char)
    (cons
-    (cons ?+ ?⁺)
+    (cons ?+ plus-char)
     (mapcar
      (lambda (i)
        (cons
         (string-to-char (number-to-string i))
-        (aref evil-numbers--chars-superscript i)))
-     (number-sequence 0 9))))
+        (aref digit-chars i)))
+     (number-sequence 0 9)))))
+
+(defconst evil-numbers--superscript-alist
+  (evil-numbers--build-script-alist ?⁻ ?⁺ evil-numbers--chars-superscript)
   "Alist mapping regular characters to superscript equivalents.")
 
 (defconst evil-numbers--subscript-alist
-  (cons
-   (cons ?- ?₋)
-   (cons
-    (cons ?+ ?₊)
-    (mapcar
-     (lambda (i)
-       (cons
-        (string-to-char (number-to-string i))
-        (aref evil-numbers--chars-subscript i)))
-     (number-sequence 0 9))))
+  (evil-numbers--build-script-alist ?₋ ?₊ evil-numbers--chars-subscript)
   "Alist mapping regular characters to subscript equivalents.")
 
 
