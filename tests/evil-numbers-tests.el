@@ -6,9 +6,6 @@
 
 ;; See: `evil-numbers-tests.sh' for launching this script.
 
-;; Bugs fixed in:
-;; c37a4cf92a9cf8aa9f8bd752ea856a9d1bc6c84c
-
 (require 'ert)
 
 (setq evil-numbers-tests-basedir
@@ -499,6 +496,62 @@ the number directly before it should NOT be manipulated."
         (kbd "C-x")
         "a|")
       (should (equal text-expected (buffer-string))))))
+
+;; See commit c37a4cf92a9cf8aa9f8bd752ea856a9d1bc6c84c.
+(ert-deftest selected-block-column-padding-preserved ()
+  "Block selection should preserve padding when `evil-numbers-pad-default' is set.
+When incrementing numbers using block selection with padding enabled,
+the padding should be preserved. For example, incrementing 7 with padding
+should result in 08 (matching original width), not 8."
+  ;; Save the default value to restore later.
+  (let ((default-value evil-numbers-pad-default))
+    (unwind-protect
+        (progn
+          ;; Test with padding enabled via evil-numbers-pad-default.
+          (setq evil-numbers-pad-default t)
+          (let ((text-expected
+                 ;; format-next-line: off
+                 (concat "0|8 00 00\n"
+                         "08 00 00\n"
+                         "08 00 00\n"))
+                (text-initial
+                 ;; format-next-line: off
+                 (concat "07 00 00\n"
+                         "07 00 00\n"
+                         "07 00 00\n")))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                ;; Block select the first column (both digits).
+                (kbd "C-v")
+                "ljj"
+                ;; Increment.
+                (kbd "C-a")
+                ;; Show cursor location.
+                "a|")
+              (should (equal text-expected (buffer-string)))))
+          ;; Also test decrement preserves padding.
+          (let ((text-expected
+                 ;; format-next-line: off
+                 (concat "0|6 00 00\n"
+                         "06 00 00\n"
+                         "06 00 00\n"))
+                (text-initial
+                 ;; format-next-line: off
+                 (concat "07 00 00\n"
+                         "07 00 00\n"
+                         "07 00 00\n")))
+            (with-evil-numbers-test text-initial
+              (simulate-input
+                ;; Block select the first column (both digits).
+                (kbd "C-v")
+                "ljj"
+                ;; Decrement.
+                (kbd "C-x")
+                ;; Show cursor location.
+                "a|")
+              (should (equal text-expected (buffer-string))))))
+      ;; Restore the default value.
+      (setq evil-numbers-pad-default default-value))))
 
 (provide 'evil-numbers-tests)
 ;;; evil-numbers-tests.el ends here
