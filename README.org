@@ -31,7 +31,7 @@
 ** Customization
 
    - =evil-numbers-pad-default= ::
-     Set  to =t= if you want numbers to be padded with zeros (numbers with a leading zero are always padded).
+     Set to =t= if you want numbers to be padded with zeros (numbers with a leading zero are always padded).
      If you want both behaviors, all commands take an optional argument =padded=.
 
    - =evil-numbers-separator-chars= ::
@@ -51,6 +51,12 @@
      Support matching numbers directly before the cursor.
 
      This is off by default as it doesn't follow VIM's behavior.
+
+   - =evil-numbers-negative= ::
+     Configure negative number support.
+
+     - =t= Support negative numbers (default).
+     - =nil= Numbers negative prefix is ignored, useful when numbers may be date/year ranges.
 
 ** Key Bindings
    Example key bindings:

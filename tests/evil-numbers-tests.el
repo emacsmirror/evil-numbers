@@ -770,5 +770,62 @@ should result in 08 (matching original width), not 8."
         ;; Number SHOULD be incremented (cursor ends at number).
         (should (equal "foo(2|)" (buffer-string)))))))
 
+(ert-deftest simple-handle-negative-disabled ()
+  "Check `evil-numbers-negative' behavior when disabled.
+When disabled, the minus sign before a number is ignored."
+  ;; Test with option ENABLED (default behavior).
+  ;; Incrementing -5 should give -4.
+  (let ((evil-numbers-negative t)
+        (text-expected " -4| ")
+        (text-initial " -5 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+
+  ;; Test with option DISABLED.
+  ;; The minus sign is ignored, so -5 is treated as 5.
+  ;; Incrementing 5 gives 6, result is -6 (minus untouched).
+  (let ((evil-numbers-negative nil)
+        (text-expected " -6| ")
+        (text-initial " -5 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+
+  ;; Test decrement with option DISABLED.
+  ;; Decrementing 5 (ignoring the minus) gives 4, result is -4.
+  (let ((evil-numbers-negative nil)
+        (text-expected " -4| ")
+        (text-initial " -5 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+
+  ;; Positive numbers should work normally with option disabled.
+  (let ((evil-numbers-negative nil)
+        (text-expected " 6| ")
+        (text-initial " 5 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-a")
+        "a|")
+      (should (equal text-expected (buffer-string)))))
+
+  ;; Decrementing 0 with option disabled should clamp to 0.
+  (let ((evil-numbers-negative nil)
+        (text-expected " 0| ")
+        (text-initial " 0 "))
+    (with-evil-numbers-test text-initial
+      (simulate-input
+        (kbd "C-x")
+        "a|")
+      (should (equal text-expected (buffer-string))))))
+
 (provide 'evil-numbers-tests)
 ;;; evil-numbers-tests.el ends here

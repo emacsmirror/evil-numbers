@@ -111,6 +111,11 @@ Set to nil to disable this functionality."
 This doesn't match VIM's behavior."
   :type 'boolean)
 
+(defcustom evil-numbers-negative t
+  "When non-nil, recognize and preserve negative numbers.
+When nil, the minus sign before a number is ignored, treating -5 as 5."
+  :type 'boolean)
+
 ;; ---------------------------------------------------------------------------
 ;; Internal Variables
 
@@ -446,7 +451,12 @@ replacing it by the result of NUMBER-XFORM-FN and return non-nil."
              (str-prev
               (funcall decode-fn
                        (concat
-                        (match-string sign-group) (match-string num-group))))
+                        (cond
+                         (evil-numbers-negative
+                          (match-string sign-group))
+                         (t
+                          ""))
+                        (match-string num-group))))
 
              (str-prev-strip
               (cond
@@ -456,7 +466,14 @@ replacing it by the result of NUMBER-XFORM-FN and return non-nil."
                 str-prev)))
 
              (num-prev (string-to-number str-prev-strip base))
-             (num-next (funcall number-xform-fn num-prev))
+             (num-next
+              (let ((result (funcall number-xform-fn num-prev)))
+                ;; When negative numbers are disabled, clamp to 0.
+                (cond
+                 (evil-numbers-negative
+                  result)
+                 (t
+                  (max 0 result)))))
              (str-next
               (evil-numbers--format
                (abs num-next)
@@ -493,13 +510,14 @@ replacing it by the result of NUMBER-XFORM-FN and return non-nil."
         (replace-match (funcall encode-fn str-next) t t nil num-group)
 
         ;; Replace the sign (as needed).
-        (cond
-         ;; From negative to positive.
-         ((and (< num-prev 0) (not (< num-next 0)))
-          (replace-match "" t t nil sign-group))
-         ;; From positive to negative.
-         ((and (not (< num-prev 0)) (< num-next 0))
-          (replace-match (funcall encode-fn "-") t t nil sign-group)))
+        (when evil-numbers-negative
+          (cond
+           ;; From negative to positive.
+           ((and (< num-prev 0) (not (< num-next 0)))
+            (replace-match "" t t nil sign-group))
+           ;; From positive to negative.
+           ((and (not (< num-prev 0)) (< num-next 0))
+            (replace-match (funcall encode-fn "-") t t nil sign-group))))
 
         (goto-char (match-end num-group)))
 
